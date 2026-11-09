@@ -21,7 +21,7 @@ import controle_estoque as ce
 import pipeline
 
 PASTA = Path(__file__).parent
-st.set_page_config(page_title="Controle de Estoque · PO2", layout="wide")
+st.set_page_config(page_title="Controle de Estoque ", layout="wide")
 
 AZUL, LARANJA, VERMELHO, VERDE, CINZA, AZUL_CLARO = "#1f4e79", "#e07b39", "#c0392b", "#2e8b57", "#8a8a8a", "#9ecae1"
 GBP = ce.PTAX_GBP_BRL
