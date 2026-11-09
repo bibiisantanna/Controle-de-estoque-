@@ -189,3 +189,16 @@ def rodar(arquivo):
                   "metricas": metricas, "D": D, "I0": I0, "plano": plano, "sem_cap": sem_cap,
                   "volume": volume, "ocup": ocupacao(plano), "ocup_sem": ocupacao(sem_cap)}
     return r
+
+
+if __name__ == "__main__":
+    # Gera resultados_app.pkl para o app abrir sem recalcular:
+    #   python pipeline.py Online_Retail_PT_BR_Completo.xlsx
+    import pickle
+    import sys
+    from pathlib import Path
+    arquivo = sys.argv[1] if len(sys.argv) > 1 else "Online_Retail_PT_BR_Completo.xlsx"
+    saida = Path(__file__).parent / "resultados_app.pkl"
+    with open(saida, "wb") as f:
+        pickle.dump(rodar(arquivo), f)
+    print(f"Resultados salvos em {saida}")

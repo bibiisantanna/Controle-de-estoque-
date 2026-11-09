@@ -1,17 +1,13 @@
 """
-App Streamlit para apresentar o Trabalho 1 de Pesquisa Operacional 2 (UFRJ).
-Bianca Sant'anna / Lucas Tesch
+App Streamlit do Trabalho 1 de Pesquisa Operacional 2 (UFRJ): controle de estoque.
 
 Rodar:  streamlit run app.py
-Cada página corresponde a uma etapa do controle_estoque.py e mostra:
-  - o que a etapa faz (texto curto),
-  - os resultados em gráficos interativos,
-  - o trecho de código correspondente (botão "Ver o código").
+Cada página corresponde a uma etapa do controle_estoque.py e mostra o que a etapa
+faz, os resultados em gráficos interativos e o trecho de código correspondente.
 """
 
-import hashlib
+import pickle
 import inspect
-import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -25,7 +21,7 @@ import controle_estoque as ce
 import pipeline
 
 PASTA = Path(__file__).parent
-st.set_page_config(page_title="Controle de Estoque · PO2", page_icon="📦", layout="wide")
+st.set_page_config(page_title="Controle de Estoque · PO2", layout="wide")
 
 AZUL, LARANJA, VERMELHO, VERDE, CINZA, AZUL_CLARO = "#1f4e79", "#e07b39", "#c0392b", "#2e8b57", "#8a8a8a", "#9ecae1"
 GBP = ce.PTAX_GBP_BRL
@@ -40,6 +36,10 @@ def fmt(v, casas=0):
     return s.replace(",", "X").replace(".", ",").replace("X", ".")
 
 
+def pct(v, casas=1):
+    return fmt(100 * v, casas) + "%"
+
+
 def libra(v):
     return f"£ {fmt(v, 2)}"
 
@@ -49,7 +49,7 @@ def real(v):
 
 
 def ver_codigo(*funcoes, titulo="Ver o código desta etapa"):
-    with st.expander(f"🧾 {titulo}"):
+    with st.expander(titulo):
         for f in funcoes:
             st.code(inspect.getsource(f), language="python")
 
@@ -68,81 +68,43 @@ def layout(fig, altura=380, legenda=True):
     return fig
 
 
-NOTAS = {
-    "Início": ("Bianca e Lucas",
-               "Bianca se apresenta e diz o objetivo do trabalho; Lucas mostra o fluxo do programa e diz que "
-               "cada página do app é uma etapa do manual."),
-    "1 · Dados e limpeza": ("Bianca",
-               "Mostrar o diagnóstico antes de apagar qualquer coisa, depois o funil de limpeza e por fim a "
-               "regra conservadora de cancelamentos (só abate quando há uma única venda candidata)."),
-    "2 · Treino/teste e seleção": ("Bianca",
-               "Explicar dias de operação, o corte de 80% e o funil de filtros. Ressaltar: a seleção usa só o treino."),
-    "3 · Demanda e outliers": ("Bianca",
-               "Mostrar as três séries, o limite Q3 + 3·IQR aplicado só no treino, e passar a palavra ao Lucas."),
-    "4 · Custos e parâmetros": ("Lucas",
-               "Premissas de custo; EOQ e ciclo ótimo pelas curvas de custo; s e S pelo histograma das somas móveis. "
-               "No laboratório, mostrar o que muda se o nível de serviço for 95%."),
-    "5 · Simulação no teste": ("Bianca",
-               "Explicar a ordem diária (chega, vende, olha a posição, pede), mostrar o gráfico de estoque e "
-               "usar o controle de dia para 'tocar' a simulação. Fechar com os custos."),
-    "6 · Bônus: previsão e lotes": ("Lucas",
-               "Previsão por suavização exponencial, depois o modelo de programação inteira: variáveis, restrições, "
-               "plano e ocupação do depósito com e sem capacidade."),
-    "7 · Código completo": ("Bianca e Lucas", "Usar se o professor pedir para ver alguma função específica."),
-}
-
-
-def nota(pagina):
-    if st.session_state.get("modo_apresentacao"):
-        quem, texto = NOTAS[pagina]
-        st.info(f"🎙️ **Quem fala: {quem}.** {texto}")
-
-
 # ----------------------------------------------------------------------------- dados
-@st.cache_data(show_spinner=False, persist="disk")
-def resultados(caminho: str, assinatura: str):
-    return pipeline.rodar(caminho)
+NOME_BASE = "Online_Retail_PT_BR_Completo.xlsx"
+CACHE = PASTA / "resultados_app.pkl"
 
 
-def escolher_base():
-    st.sidebar.markdown("### Base de dados")
-    candidatas = sorted((PASTA / "dados").glob("*.xlsx"), key=lambda p: ("sintetica" in p.name, p.name))
-    opcoes = [p.name for p in candidatas] + ["Enviar um arquivo…"]
-    escolha = st.sidebar.selectbox("Arquivo", opcoes, index=0,
-                                   help="Coloque Online_Retail_PT_BR_Completo.xlsx na pasta dados/ do projeto.")
-    if escolha == "Enviar um arquivo…":
-        up = st.sidebar.file_uploader("Planilha .xlsx", type="xlsx")
-        if up is None:
-            return None, None
-        dados = up.getvalue()
-        assinatura = hashlib.md5(dados).hexdigest()
-        caminho = Path(tempfile.gettempdir()) / f"base_{assinatura}.xlsx"
-        if not caminho.exists():
-            caminho.write_bytes(dados)
-        return str(caminho), assinatura
-    caminho = PASTA / "dados" / escolha
-    est = caminho.stat()
-    return str(caminho), f"{est.st_size}-{est.st_mtime}"
+@st.cache_resource(show_spinner=False)
+def resultados():
+    """Usa os resultados já calculados (resultados_app.pkl); se não der, roda o programa na planilha."""
+    if CACHE.exists():
+        try:
+            with open(CACHE, "rb") as f:
+                return pickle.load(f)
+        except Exception:
+            pass
+    for caminho in [PASTA / NOME_BASE, PASTA / "dados" / NOME_BASE]:
+        if caminho.exists():
+            return pipeline.rodar(str(caminho))
+    return None
 
 
 # ----------------------------------------------------------------------------- páginas
 def pagina_inicio(r):
-    st.title("📦 Controle de Estoque de três produtos")
-    st.caption("UFRJ · EEI744 Pesquisa Operacional 2 · Prof. George Victor · Trabalho 1  —  "
-               "**Bianca Sant'anna** e **Lucas Tesch**")
-    nota("Início")
+    st.title("Controle de Estoque de três produtos")
+    st.caption("UFRJ · EEI744 Pesquisa Operacional 2 · Prof. George Victor · Trabalho 1")
     st.markdown(
         "O programa `controle_estoque.py` usa a base **Online Retail (UCI)** traduzida para português "
         "(vendas de 01/12/2010 a 09/12/2011). Ele limpa os dados, escolhe três produtos, calcula uma política "
         "**⟨s,Q⟩** para um item e uma política **⟨R,S⟩ conjunta** para os outros dois, simula as duas no período "
         "de teste e, no bônus, planeja os lotes com **previsão de demanda + programação inteira**.")
 
-    c = st.columns(5)
+    c = st.columns(6)
     c[0].metric("Registros na base", fmt(r["n_registros"]))
     c[1].metric("Dias de treino", r["n"])
     c[2].metric("Dias de teste", len(r["dias"]) - r["n"])
     c[3].metric("Item ⟨s,Q⟩", r["item_sQ"])
-    c[4].metric("Itens ⟨R,S⟩", " + ".join(r["itens_RS"]))
+    c[4].metric("1º item ⟨R,S⟩", r["itens_RS"][0])
+    c[5].metric("2º item ⟨R,S⟩", r["itens_RS"][1])
 
     st.subheader("Fluxo do programa")
     st.graphviz_chart("""
@@ -158,17 +120,6 @@ def pagina_inicio(r):
       g [label="7 · Bônus\\nprevisão + MILP\\ndimensionar_lotes", fillcolor="#fdf0e6", color="#e07b39"];
       a -> b -> c -> d -> e -> f; d -> g;
     }""", width="stretch")
-
-    st.subheader("Quem apresenta cada parte")
-    st.dataframe(pd.DataFrame([
-        ["Abertura e visão geral", "Bianca e Lucas", "Início", "2 min"],
-        ["Dados, limpeza e cancelamentos", "Bianca", "1 · Dados e limpeza", "4 min"],
-        ["Treino/teste, seleção e outliers", "Bianca", "2 e 3", "3 min"],
-        ["Custos e parâmetros ⟨s,Q⟩ e ⟨R,S⟩", "Lucas", "4 · Custos e parâmetros", "4 min"],
-        ["Simulação no teste", "Bianca", "5 · Simulação", "3 min"],
-        ["Bônus: previsão e lotes", "Lucas", "6 · Bônus", "3 min"],
-        ["Fechamento", "Lucas e Bianca", "Início", "1 min"],
-    ], columns=["Bloco", "Quem fala", "Página", "Tempo"]), hide_index=True, width="stretch")
 
     st.subheader("Premissas (constantes no topo do código)")
     prem = pd.DataFrame([
@@ -187,7 +138,6 @@ def pagina_inicio(r):
 
 def pagina_dados(r):
     st.header("1 · Dados, diagnóstico e limpeza")
-    nota("1 · Dados e limpeza")
     st.markdown("Primeiro olhamos a base **como ela veio**, sem apagar nada. Só depois aplicamos os filtros, "
                 "cada um registrado com quantas linhas removeu.")
 
@@ -247,7 +197,6 @@ def pagina_dados(r):
 
 def pagina_selecao(r):
     st.header("2 · Divisão treino/teste e seleção dos três itens")
-    nota("2 · Treino/teste e seleção")
     dias, n, corte = r["dias"], r["n"], r["corte"]
     st.markdown(f"A série usa **dias de operação**: datas em que a loja vendeu algo ({len(dias)} dias). "
                 "Sábados e o recesso de fim de ano não viram zero. Os **80% mais antigos** são o treino.")
@@ -306,14 +255,13 @@ def pagina_selecao(r):
     rk = r["ranking"].copy()
     rk.insert(0, "política", ["⟨s,Q⟩" if i == r["item_sQ"] else "⟨R,S⟩" if i in r["itens_RS"] else ""
                               for i in rk.index])
-    st.dataframe(rk.style.format({"media": "{:.1f}", "cv": "{:.3f}", "freq": "{:.1%}", "concentracao": "{:.2%}",
-                                  "tendencia": "{:.2f}"}), width="stretch")
+    st.dataframe(rk.style.format({"media": (lambda v: fmt(v, 1)), "cv": (lambda v: fmt(v, 3)), "freq": pct, "concentracao": (lambda v: pct(v, 2)),
+                                  "tendencia": (lambda v: fmt(v, 2))}), width="stretch")
     ver_codigo(ce.selecionar_itens)
 
 
 def pagina_demanda(r):
     st.header("3 · Demanda diária dos itens escolhidos e tratamento de outliers")
-    nota("3 · Demanda e outliers")
     st.markdown("No **treino**, dias acima de **Q3 + 3·IQR** são limitados a esse valor (o pico não é tratado "
                 "como erro, só não deixamos que ele infle os parâmetros). No **teste**, a demanda fica **como "
                 "aconteceu**, para ver a política reagir a picos reais.")
@@ -336,8 +284,8 @@ def pagina_demanda(r):
         st.plotly_chart(layout(fig, 280), width="stretch")
     tab = est[["descricao", "media", "dp", "cv", "media_teste", "limite_outlier", "dias_ajustados"]].copy()
     tab.columns = ["Produto", "Média treino", "Desvio treino", "CV", "Média teste", "Limite outlier", "Dias limitados"]
-    st.dataframe(tab.style.format({"Média treino": "{:.1f}", "Desvio treino": "{:.1f}", "CV": "{:.2f}",
-                                   "Média teste": "{:.1f}", "Limite outlier": "{:.0f}", "Dias limitados": "{:.0f}"}),
+    st.dataframe(tab.style.format({"Média treino": (lambda v: fmt(v, 1)), "Desvio treino": (lambda v: fmt(v, 1)), "CV": (lambda v: fmt(v, 2)),
+                                   "Média teste": (lambda v: fmt(v, 1)), "Limite outlier": fmt, "Dias limitados": fmt}),
                  width="stretch")
     ver_codigo(ce.tratar_outliers)
 
@@ -348,7 +296,6 @@ def curva_rolling(serie, janela):
 
 def pagina_parametros(r):
     st.header("4 · Custos e parâmetros das políticas")
-    nota("4 · Custos e parâmetros")
     est, par = r["est"], r["par"]
     st.subheader("Premissas de custo por item")
     st.markdown("A base só traz **preço de venda**. Então: preço p = mediana no treino; compra c = 60%·p; "
@@ -357,7 +304,7 @@ def pagina_parametros(r):
     cu = est[["descricao", "preco", "c", "h_ano", "h_dia", "falta"]].copy()
     cu["preço (R$)"] = cu["preco"] * GBP
     cu.columns = ["Produto", "Preço p (£)", "Compra c (£)", "h (£/un·ano)", "h (£/un·dia)", "Falta (£/un)", "Preço (R$)"]
-    st.dataframe(cu.style.format({c: "{:.4f}" if "dia" in c else "{:.2f}" for c in cu.columns[1:]}),
+    st.dataframe(cu.style.format({c: (lambda v: fmt(v, 4)) if "dia" in c else (lambda v: fmt(v, 2)) for c in cu.columns[1:]}),
                  width="stretch")
     ver_codigo(ce.custos_item)
 
@@ -423,11 +370,11 @@ def pagina_parametros(r):
              "cobertura_empirica_treino"]].copy()
     t.columns = ["Item", "Política", "Q (un) ou R (dias)", "Janela (dias)", "σ proteção", "ES (z·σ)",
                  "μ·janela + z·σ", "Quantil 99%", "s ou S", "Cobertura no treino"]
-    st.dataframe(t.style.format({"σ proteção": "{:.1f}", "ES (z·σ)": "{:.1f}", "μ·janela + z·σ": "{:.1f}",
-                                 "Cobertura no treino": "{:.1%}"}), hide_index=True, width="stretch")
+    st.dataframe(t.style.format({"σ proteção": (lambda v: fmt(v, 1)), "ES (z·σ)": (lambda v: fmt(v, 1)), "μ·janela + z·σ": (lambda v: fmt(v, 1)),
+                                 "Cobertura no treino": pct}), hide_index=True, width="stretch")
 
     st.divider()
-    st.subheader("🧪 Laboratório: e se o nível de serviço fosse outro?")
+    st.subheader("Sensibilidade: e se o nível de serviço fosse outro?")
     st.markdown("Recalcula s e S e roda de novo a simulação do teste com as mesmas funções do código.")
     ns = st.select_slider("Nível de serviço por ciclo", options=[0.80, 0.85, 0.90, 0.95, 0.975, 0.99, 0.995, 0.999],
                           value=0.95, format_func=lambda x: f"{x:.1%}")
@@ -443,8 +390,8 @@ def pagina_parametros(r):
                            "s ou S": " / ".join(str(v) for v in pp), "Armazenagem (£)": row["custo_armazenagem"],
                            "Falta (£)": row["custo_falta"], "Total (£)": row["custo_total"],
                            "Fill rate": row["fill_rate"]})
-    st.dataframe(pd.DataFrame(linhas).style.format({"Armazenagem (£)": "{:.2f}", "Falta (£)": "{:.2f}",
-                                                    "Total (£)": "{:.2f}", "Fill rate": "{:.1%}"}),
+    st.dataframe(pd.DataFrame(linhas).style.format({"Armazenagem (£)": (lambda v: fmt(v, 2)), "Falta (£)": (lambda v: fmt(v, 2)),
+                                                    "Total (£)": (lambda v: fmt(v, 2)), "Fill rate": pct}),
                  hide_index=True, width="stretch")
     st.caption("Mais nível de serviço → s/S maiores → mais armazenagem e, em geral, menos falta. "
                "Compra e custo fixo quase não mudam: dependem do volume vendido.")
@@ -466,7 +413,6 @@ def histograma_janela(rol, linha, nome):
 
 def pagina_simulacao(r):
     st.header("5 · Simulação no período de teste (99%)")
-    nota("5 · Simulação no teste")
     st.markdown(f"Parâmetros **fixos**, demanda **real** do teste. A cada dia: **(1)** chega o que estava previsto, "
                 f"**(2)** vende-se o possível (o resto é venda perdida), **(3)** no fim do dia olha-se a **posição** "
                 f"(físico + em trânsito) e decide-se o pedido, **(4)** que chega em t + L + 1 = t + {ce.LEAD_TIME + 1}.")
@@ -478,11 +424,11 @@ def pagina_simulacao(r):
             st.markdown(f"#### {row['sistema']} · {row['itens']}")
             a, b, cc = st.columns(3)
             metrica(a, "Custo total", libra(row["custo_total"]), real(row["custo_total_BRL"]))
-            metrica(b, "Fill rate", f"{row['fill_rate']:.1%}", f"{fmt(row['vendas_perdidas'])} un perdidas")
+            metrica(b, "Fill rate", pct(row['fill_rate']), f"{fmt(row['vendas_perdidas'])} un perdidas")
             metrica(cc, "Ciclos sem falta", f"{row['ciclos_sem_falta']} de {row['ciclos']}", f"{row['pedidos']} pedidos")
 
     st.subheader("Evolução do estoque")
-    dia = st.slider("Dia do teste (arraste para 'tocar' a simulação)", 1, len(datas), len(datas))
+    dia = st.slider("Dia do teste", 1, len(datas), len(datas))
     for it in r["itens"]:
         if it == r["item_sQ"]:
             s_ = sim["sQ"]
@@ -531,7 +477,7 @@ def pagina_simulacao(r):
             linhas.append({"Item": it, "Estoque ao abrir": antes, "(1) Chegou": rec[t], "Disponível": antes + rec[t],
                            "Demanda": sim["dem"][it][t], "(2) Vendido": sim["dem"][it][t] - p[t],
                            "Venda perdida": p[t], "Estoque ao fechar": e[t], "(3-4) Pedido emitido": ped[t]})
-        st.dataframe(pd.DataFrame(linhas).style.format({c: "{:.0f}" for c in linhas[0] if c != "Item"}),
+        st.dataframe(pd.DataFrame(linhas).style.format({c: fmt for c in linhas[0] if c != "Item"}),
                      hide_index=True, width="stretch")
 
     st.subheader("Custos no teste")
@@ -547,7 +493,7 @@ def pagina_simulacao(r):
         t = res[["sistema", "pedidos", "custo_fixo", "custo_variavel", "custo_armazenagem", "custo_falta",
                  "custo_total", "custo_total_BRL"]].copy()
         t.columns = ["Sistema", "Pedidos", "Fixo £", "Variável £", "Armaz. £", "Falta £", "Total £", "Total R$"]
-        st.dataframe(t.style.format({c: "{:,.2f}" for c in t.columns[2:]}), hide_index=True, width="stretch")
+        st.dataframe(t.style.format({c: (lambda v: fmt(v, 2)) for c in t.columns[2:]}), hide_index=True, width="stretch")
         st.caption("O custo variável domina e depende só do volume comprado. A compra do estoque inicial "
                    "(condição assumida) fica fora do total: " +
                    "; ".join(f"{row['sistema']}: {libra(row['aquisicao_estoque_inicial'])}" for _, row in res.iterrows()))
@@ -556,7 +502,6 @@ def pagina_simulacao(r):
 
 def pagina_bonus(r):
     st.header("6 · Bônus: previsão de demanda e dimensionamento de lotes")
-    nota("6 · Bônus: previsão e lotes")
     b = r["bonus"]
     itens = r["itens_RS"]
     st.markdown(f"Para o par conjunto, a demanda é somada em **períodos de {ce.DIAS_POR_PERIODO} dias** "
@@ -639,7 +584,7 @@ def pagina_bonus(r):
         df[f"{it} previsão"] = b["D"][it]
         df[f"{it} recebe"] = plano["x"][it]
         df[f"{it} estoque fim"] = plano["I"][it]
-    st.dataframe(df.style.format({c: "{:.0f}" for c in df.columns[1:]})
+    st.dataframe(df.style.format({c: fmt for c in df.columns[1:]})
                  .apply(lambda s: ["background-color:#e8f1fa" if v else "" for v in df["Pedido conjunto"]], axis=0),
                  hide_index=True, width="stretch")
     st.caption(f"x é recebimento; o pedido é emitido {pl['atraso_periodos']} período antes. Status do solver: {pl['status']}")
@@ -654,7 +599,6 @@ def pagina_bonus(r):
 
 def pagina_codigo(r):
     st.header("7 · Código completo")
-    nota("7 · Código completo")
     fontes = {nome: f for nome, f in inspect.getmembers(ce, inspect.isfunction) if f.__module__ == ce.__name__}
     ordem = sorted(fontes, key=lambda n: inspect.getsourcelines(fontes[n])[1])
     escolha = st.selectbox("Função", ["(arquivo inteiro)"] + ordem)
@@ -679,18 +623,14 @@ PAGINAS = {
 
 
 def main():
-    st.sidebar.title("📦 PO2 · Trabalho 1")
-    st.sidebar.caption("Bianca Sant'anna · Lucas Tesch")
+    st.sidebar.title("Controle de Estoque")
+    st.sidebar.caption("Pesquisa Operacional 2 · UFRJ · Trabalho 1")
     pagina = st.sidebar.radio("Etapas", list(PAGINAS), label_visibility="collapsed")
-    st.sidebar.toggle("Modo apresentação (mostra quem fala)", key="modo_apresentacao")
-    caminho, assinatura = escolher_base()
-    if caminho is None:
-        st.info("Envie a planilha da base (Online_Retail_PT_BR_Completo.xlsx) na barra lateral.")
+    with st.spinner("Carregando os resultados…"):
+        r = resultados()
+    if r is None:
+        st.error(f"Não encontrei {NOME_BASE} nem resultados_app.pkl na pasta do projeto.")
         return
-    if "sintetica" in Path(caminho).name:
-        st.sidebar.warning("Usando a base **sintética** de teste. Para o vídeo, coloque a base real em `dados/`.")
-    with st.spinner("Rodando o programa (na primeira vez, com a base real, pode levar alguns minutos)…"):
-        r = resultados(caminho, assinatura)
     PAGINAS[pagina](r)
 
 
