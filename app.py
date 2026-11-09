@@ -1,5 +1,5 @@
 """
-App Streamlit do Trabalho 1 de Pesquisa Operacional 2 (UFRJ): controle de estoque.
+App Streamlit do Trabalho de Pesquisa Operacional (UFRJ): controle de estoque.
 
 Rodar:  streamlit run app.py
 Cada página corresponde a uma etapa do controle_estoque.py e mostra o que a etapa
@@ -91,7 +91,7 @@ def resultados():
 # ----------------------------------------------------------------------------- páginas
 def pagina_inicio(r):
     st.title("Controle de Estoque de três produtos")
-    st.caption("UFRJ · EEI744 Pesquisa Operacional 2 · Prof. George Victor · Trabalho 1")
+    st.caption("UFRJ · Pesquisa Operacional")
     st.markdown(
         "O programa `controle_estoque.py` usa a base **Online Retail (UCI)** traduzida para português "
         "(vendas de 01/12/2010 a 09/12/2011). Ele limpa os dados, escolhe três produtos, calcula uma política "
