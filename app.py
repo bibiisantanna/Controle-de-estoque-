@@ -550,7 +550,7 @@ def pagina_bonus(r):
             fig.add_scatter(x=list(range(1, len(pv) + 1)), y=pv, name="previsão", line=dict(color=AZUL, width=3))
             fig.add_scatter(x=list(range(1, len(re_) + 1)), y=re_, name="real (teste)", mode="lines+markers",
                             line=dict(color=LARANJA))
-            fig.add_vline(x=0.5, line_dash="dash")
+            fig.add_vline(x=0.5, line_dash="dash", y0=0.1)
             fig.add_vrect(x0=-7.5, x1=0.5, fillcolor="#f2f2f2", line_width=0, layer="below",
                           annotation_text="validação", annotation_position="bottom left")
             fig.update_layout(title=f"{it}<br><sup>{r['est'].loc[it, 'descricao']}</sup>", xaxis_title="período (6 dias)",
