@@ -567,11 +567,11 @@ def pagina_bonus(r):
     st.subheader("2) Modelo de programação inteira mista (MILP)")
     c1, c2 = st.columns([1.1, 1])
     with c1:
-    st.markdown("**Variáveis** (item i, período t):\n"
-                "- **x** = unidades recebidas (inteiro)\n"
-                "- **I** = estoque no fim do período\n"
-                "- **z** = item entra no pedido (0/1)\n"
-                "- **y** = houve pedido conjunto (0/1)")
+        st.markdown("**Variáveis** (item i, período t):\n"
+                    "- **x** = unidades recebidas (inteiro)\n"
+                    "- **I** = estoque no fim do período\n"
+                    "- **z** = item entra no pedido (0/1)\n"
+                    "- **y** = houve pedido conjunto (0/1)")
         st.latex(r"\min\;\sum_{i,t}\big(c_i x_{it}+h_i I_{it}+k\,z_{it}\big)+\sum_t K_0\,y_t")
         st.latex(r"\begin{aligned}"
                  r"&I_{it}=I_{i,t-1}+x_{it}-D_{it} && \text{balanço}\\"
