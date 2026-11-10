@@ -556,10 +556,10 @@ def pagina_bonus(r):
                               yaxis_title="un / período")
             st.plotly_chart(layout(fig, 320), width="stretch")
             a, bb, c = st.columns(3)
-            metrica(a, "Modelo", "Holt amort." if "Holt" in mt["modelo"] else mt["modelo"].split(" a=")[0],
+            metrica_pequena(a, "Modelo", "Holt amort." if "Holt" in mt["modelo"] else mt["modelo"].split(" a=")[0],
                     mt["modelo"][mt["modelo"].find("a="):] if "a=" in mt["modelo"] else "")
-            metrica(bb, "MAE validação → teste", f"{fmt(mt['mae_validacao'])} → {fmt(mt['mae_teste'])}", "un / período")
-            metrica(c, "Estoque mínimo", fmt(mt["estoque_minimo"]), f"z₀,₉₉ × σ do erro ({fmt(mt['sd_erro'])})")
+            metrica_pequena(bb, "MAE validação → teste", f"{fmt(mt['mae_validacao'])} → {fmt(mt['mae_teste'])}", "un / período")
+            metrica_pequena(c, "Estoque mínimo", fmt(mt["estoque_minimo"]), f"z₀,₉₉ × σ do erro ({fmt(mt['sd_erro'])})")
     ver_codigo(ce.em_periodos, ce.suav_exponencial, ce.escolher_previsao, ce.prever)
 
     st.divider()
