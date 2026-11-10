@@ -537,7 +537,7 @@ def pagina_bonus(r):
                 f"últimos 8 períodos do treino e planejamos **{ce.HORIZONTE} períodos** com programação inteira.")
 
     st.subheader("1) Previsão")
-    st.markdown("<style>[data-testid='stMetricValue'] div {font-size:1.5rem; white-space:normal;}</style>", unsafe_allow_html=True)
+    st.markdown("<style>[data-testid='stMetricValue'] div {font-size:1.25rem; white-space:normal;}</style>", unsafe_allow_html=True)
     cols = st.columns(len(itens))
     for col, it in zip(cols, itens):
         mt = b["metricas"][it]
