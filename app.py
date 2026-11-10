@@ -1,5 +1,5 @@
 """
-App Streamlit do Trabalho de Pesquisa Operacional (UFRJ): controle de estoque.
+App Streamlit do Trabalho 1 de Pesquisa Operacional 2 (UFRJ): controle de estoque.
 
 Rodar:  streamlit run app.py
 Cada página corresponde a uma etapa do controle_estoque.py e mostra o que a etapa
@@ -7,7 +7,7 @@ faz, os resultados em gráficos interativos e o trecho de código correspondente
 """
 
 import pickle
-import inspect
+import ast
 from pathlib import Path
 
 import numpy as np
@@ -21,7 +21,7 @@ import controle_estoque as ce
 import pipeline
 
 PASTA = Path(__file__).parent
-st.set_page_config(page_title="Controle de Estoque ", layout="wide")
+st.set_page_config(page_title="Controle de Estoque · PO2", layout="wide")
 
 AZUL, LARANJA, VERMELHO, VERDE, CINZA, AZUL_CLARO = "#1f4e79", "#e07b39", "#c0392b", "#2e8b57", "#8a8a8a", "#9ecae1"
 GBP = ce.PTAX_GBP_BRL
@@ -48,10 +48,40 @@ def real(v):
     return f"R$ {fmt(v, 2)}"
 
 
+ARQUIVO_CODIGO = Path(__file__).parent / "controle_estoque.py"
+
+
+@st.cache_data(show_spinner=False)
+def codigo_fonte():
+    """Lê controle_estoque.py e guarda onde começa e termina cada função (sem usar inspect)."""
+    try:
+        texto = ARQUIVO_CODIGO.read_text(encoding="utf-8-sig")
+    except Exception:
+        return "", {}
+    funcoes = {}
+    try:
+        for no in ast.parse(texto).body:
+            if isinstance(no, ast.FunctionDef):
+                funcoes[no.name] = (no.lineno, no.end_lineno)
+    except SyntaxError:
+        pass
+    return texto, funcoes
+
+
+def trecho(nome):
+    texto, funcoes = codigo_fonte()
+    if nome not in funcoes:
+        return None, None
+    a, b = funcoes[nome]
+    return "\n".join(texto.splitlines()[a - 1:b]), a
+
+
 def ver_codigo(*funcoes, titulo="Ver o código desta etapa"):
     with st.expander(titulo):
         for f in funcoes:
-            st.code(inspect.getsource(f), language="python")
+            codigo, _ = trecho(f.__name__)
+            if codigo:
+                st.code(codigo, language="python")
 
 
 def metrica(col, rotulo, valor, nota=None, ajuda=None):
@@ -91,7 +121,7 @@ def resultados():
 # ----------------------------------------------------------------------------- páginas
 def pagina_inicio(r):
     st.title("Controle de Estoque de três produtos")
-    st.caption("UFRJ · Pesquisa Operacional")
+    st.caption("UFRJ · EEI744 Pesquisa Operacional 2 · Prof. George Victor · Trabalho 1")
     st.markdown(
         "O programa `controle_estoque.py` usa a base **Online Retail (UCI)** traduzida para português "
         "(vendas de 01/12/2010 a 09/12/2011). Ele limpa os dados, escolhe três produtos, calcula uma política "
@@ -599,15 +629,18 @@ def pagina_bonus(r):
 
 def pagina_codigo(r):
     st.header("7 · Código completo")
-    fontes = {nome: f for nome, f in inspect.getmembers(ce, inspect.isfunction) if f.__module__ == ce.__name__}
-    ordem = sorted(fontes, key=lambda n: inspect.getsourcelines(fontes[n])[1])
+    texto, funcoes = codigo_fonte()
+    if not texto:
+        st.warning("Não foi possível ler controle_estoque.py.")
+        return
+    ordem = sorted(funcoes, key=lambda n: funcoes[n][0])
     escolha = st.selectbox("Função", ["(arquivo inteiro)"] + ordem)
     if escolha == "(arquivo inteiro)":
-        st.code(Path(ce.__file__).read_text(encoding="utf-8"), language="python", line_numbers=True)
+        st.code(texto, language="python", line_numbers=True)
     else:
-        linhas, inicio = inspect.getsourcelines(fontes[escolha])
-        st.caption(f"Linhas {inicio}–{inicio + len(linhas) - 1} de controle_estoque.py")
-        st.code("".join(linhas), language="python", line_numbers=True)
+        codigo, inicio = trecho(escolha)
+        st.caption(f"Linhas {inicio}–{funcoes[escolha][1]} de controle_estoque.py")
+        st.code(codigo, language="python", line_numbers=True)
 
 
 PAGINAS = {
