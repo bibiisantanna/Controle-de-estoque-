@@ -552,7 +552,7 @@ def pagina_bonus(r):
                             line=dict(color=LARANJA))
             fig.add_vline(x=0.5, line_dash="dash")
             fig.add_vrect(x0=-7.5, x1=0.5, fillcolor="#f2f2f2", line_width=0, layer="below",
-                          annotation_text="validação", annotation_position="top left")
+                          annotation_text="validação", annotation_position="bottom left")
             fig.update_layout(title=f"{it} – {r['est'].loc[it, 'descricao']}", xaxis_title="período (6 dias)",
                               yaxis_title="un / período")
             st.plotly_chart(layout(fig, 320), width="stretch")
