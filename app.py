@@ -50,8 +50,6 @@ def real(v):
 
 ARQUIVO_CODIGO = Path(__file__).parent / "controle_estoque.py"
 
-
-@st.cache_data(show_spinner=False)
 def codigo_fonte():
     """Lê controle_estoque.py e guarda onde começa e termina cada função (sem usar inspect)."""
     try:
