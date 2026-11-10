@@ -553,9 +553,9 @@ def pagina_bonus(r):
             fig.add_vline(x=0.5, line_dash="dash")
             fig.add_vrect(x0=-7.5, x1=0.5, fillcolor="#f2f2f2", line_width=0, layer="below",
                           annotation_text="validação", annotation_position="bottom left")
-            fig.update_layout(title=f"{it} – {r['est'].loc[it, 'descricao']}", xaxis_title="período (6 dias)",
+            fig.update_layout(title=f"{it}<br><sup>{r['est'].loc[it, 'descricao']}</sup>", xaxis_title="período (6 dias)",
                               yaxis_title="un / período")
-            st.plotly_chart(layout(fig, 320), width="stretch")
+            st.plotly_chart(layout(fig, 360).update_layout(margin=dict(t=85)), width="stretch")
             a, bb, c = st.columns(3)
             metrica(a, "Modelo", "Holt amort." if "Holt" in mt["modelo"] else mt["modelo"].split(" a=")[0],
                     mt["modelo"][mt["modelo"].find("a="):] if "a=" in mt["modelo"] else "")
