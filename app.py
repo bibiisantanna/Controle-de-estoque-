@@ -657,7 +657,7 @@ PAGINAS = {
 
 def main():
     st.sidebar.title("Controle de Estoque")
-    st.sidebar.caption("Pesquisa Operacional 2 · UFRJ · Trabalho 1")
+    st.sidebar.caption("Pesquisa Operacional  · UFRJ ")
     pagina = st.sidebar.radio("Etapas", list(PAGINAS), label_visibility="collapsed")
     with st.spinner("Carregando os resultados…"):
         r = resultados()
