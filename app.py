@@ -121,7 +121,7 @@ def resultados():
 # ----------------------------------------------------------------------------- páginas
 def pagina_inicio(r):
     st.title("Controle de Estoque de três produtos")
-    st.caption("UFRJ · EEI744 Pesquisa Operacional 2 · Prof. George Victor · Trabalho 1")
+    st.caption("UFRJ ·Pesquisa Operacional")
     st.markdown(
         "O programa `controle_estoque.py` usa a base **Online Retail (UCI)** traduzida para português "
         "(vendas de 01/12/2010 a 09/12/2011). Ele limpa os dados, escolhe três produtos, calcula uma política "
