@@ -8,3 +8,5 @@ Programa em Python que, a partir da base **Online Retail (UCI)** traduzida para 
 3. calcula uma política **⟨s,Q⟩** para um item e uma **⟨R,S⟩ conjunta** para dois itens, com nível de serviço de 99% por ciclo;
 4. simula as duas políticas no período de teste (custo total e evolução do estoque);
 5. **bônus:** previsão de demanda por suavização exponencial + dimensionamento de lotes por programação inteira mista (HiGHS), com proibição de falta e capacidade de armazenagem.
+
+https://controle-estoque.streamlit.app/
