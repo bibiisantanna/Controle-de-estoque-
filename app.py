@@ -173,6 +173,7 @@ def pagina_dados(r):
     with c1:
         st.subheader("Diagnóstico da base bruta")
         d = r["diag"].copy()
+        d["Indicador"] = d["Indicador"].replace("Duplicatas exatas", "Registros duplicados")
         d["Valor"] = d["Valor"].map(fmt)
         st.dataframe(d, hide_index=True, width="stretch")
     with c2:
