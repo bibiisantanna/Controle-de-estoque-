@@ -179,6 +179,8 @@ def pagina_dados(r):
     with c2:
         st.subheader("Funil de limpeza")
         log = r["log"]
+        log = log.copy()
+        log["Etapa"] = log["Etapa"].str.replace("Duplicatas exatas", "Registros duplicados", regex=False)
         fig = go.Figure(go.Funnel(y=log["Etapa"], x=log["Restantes"], textinfo="value",
                                   marker_color=[AZUL] + [AZUL_CLARO] * (len(log) - 1)))
         fig.update_traces(texttemplate="%{value:,.0f}")
