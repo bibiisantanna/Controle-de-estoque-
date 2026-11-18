@@ -90,7 +90,7 @@ def diagnosticar(df):
     """Primeiro conferimos a base como ela veio, antes de excluir qualquer registro."""
     canc = df["Numero_Fatura"].str.startswith("C")
     diag = pd.DataFrame({
-        "Indicador": ["Registros", "Duplicatas exatas", "Descrições ausentes", "Clientes ausentes",
+        "Indicador": ["Registros", " exatas", "Descrições ausentes", "Clientes ausentes",
                       "Linhas de cancelamento (C)", "Quantidade < 0 sem C (ajustes)",
                       "Preço = 0", "Preço < 0"],
         "Valor": [len(df), int(df.duplicated().sum()), int(df["Descricao_Produto"].isna().sum()),
@@ -178,7 +178,7 @@ def preparar_base(df):
         nonlocal df
         antes = len(df); df = df[manter].copy()
         log.append((nome, len(df), antes - len(df)))
-    etapa("Duplicatas exatas (hipótese de repetição)", ~df.duplicated())
+    etapa("Duplicadas exatas (hipótese de repetição)", ~df.duplicated())
     df["Linha_Origem"] = df.index + 2
     etapa("Serviços e lançamentos (lista explícita)", ~df["Codigo_Produto"].isin(SERVICOS))
     etapa("Data e código válidos", df["Data_Fatura"].notna() & df["Codigo_Produto"].notna())
